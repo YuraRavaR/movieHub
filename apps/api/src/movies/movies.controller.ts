@@ -11,10 +11,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import type {
-  MovieStatusItem,
-  TmdbMovieSearchItem,
-} from '../types';
+import type { MovieStatusItem, TmdbMovieSearchItem } from '../types';
 import type { Request } from 'express';
 import {
   ApiCreatedResponse,
