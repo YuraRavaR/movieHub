@@ -12,7 +12,6 @@
     "test:e2e": "PLAYWRIGHT_BROWSERS_PATH=0 playwright test"
   },
   "dependencies": {
-    "@moviehub/shared-types": "*",
     "next": "16.2.2",
     "react": "19.2.4",
     "react-dom": "19.2.4"
