@@ -1,5 +1,7 @@
 import { MovieSearch } from '@/components/movie-search';
 
+export const dynamic = 'force-dynamic';
+
 export default function SearchPage() {
   return (
     <div className="space-y-4">
