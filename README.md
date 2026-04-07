@@ -5,6 +5,7 @@ MovieHub is a full-stack movie database app with TMDB search and personal movie 
 ## What it does
 
 - Search movies from TMDB
+- Sign up / login with cookie-based auth
 - Add movies to personal list
 - Mark movies as watched
 - Remove movies from list
@@ -56,6 +57,7 @@ Set real TMDB key in `apps/api/.env`:
 
 ```env
 TMDB_API_KEY=your_real_tmdb_api_key
+JWT_SECRET=replace_with_long_random_string
 ```
 
 ### 5) Run database migration

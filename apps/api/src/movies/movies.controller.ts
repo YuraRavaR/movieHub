@@ -8,11 +8,14 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import type {
   MovieStatusItem,
   TmdbMovieSearchItem,
 } from '@moviehub/shared-types';
+import type { Request } from 'express';
 import {
   ApiCreatedResponse,
   ApiOkResponse,
@@ -25,6 +28,8 @@ import { SearchMoviesDto } from './dto/search-movies.dto';
 import { UpsertMovieStatusDto } from './dto/upsert-movie-status.dto';
 import { MoviesService } from './movies.service';
 import { TmdbService } from './tmdb.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { AuthJwtPayload } from '../auth/jwt.strategy';
 
 @ApiTags('movies')
 @Controller('movies')
@@ -43,46 +48,55 @@ export class MoviesController {
     return this.tmdbService.searchMovies(query.query);
   }
 
+  @ApiOperation({ summary: 'Get top rated movies from TMDB' })
+  @ApiOkResponse({ description: 'Top rated movies list' })
+  @Get('top')
+  getTopMovies(): Promise<TmdbMovieSearchItem[]> {
+    return this.tmdbService.getTopMovies(8);
+  }
+
   @ApiOperation({ summary: 'Create or update movie status for a user' })
   @ApiCreatedResponse({ description: 'Movie status is upserted' })
+  @UseGuards(JwtAuthGuard)
   @Post('status')
   upsertStatus(
+    @Req() req: Request & { user: AuthJwtPayload },
     @Body() payload: UpsertMovieStatusDto,
   ): Promise<MovieStatusItem> {
-    return this.moviesService.upsertStatus(payload);
+    return this.moviesService.upsertStatus(req.user.email, payload);
   }
 
   @ApiOperation({ summary: 'Get all movie statuses for user' })
-  @ApiParam({ name: 'userEmail', description: 'User e-mail' })
   @ApiOkResponse({ description: 'List of movie statuses' })
-  @Get('status/:userEmail')
+  @UseGuards(JwtAuthGuard)
+  @Get('status/me')
   getStatuses(
-    @Param('userEmail') userEmail: string,
+    @Req() req: Request & { user: AuthJwtPayload },
   ): Promise<MovieStatusItem[]> {
-    return this.moviesService.getStatuses(userEmail);
+    return this.moviesService.getStatuses(req.user.email);
   }
 
   @ApiOperation({ summary: 'Update existing movie status' })
-  @ApiParam({ name: 'userEmail', description: 'User e-mail' })
   @ApiParam({ name: 'tmdbId', description: 'TMDB movie id' })
   @ApiOkResponse({ description: 'Updated movie status item' })
-  @Patch('status/:userEmail/:tmdbId')
+  @UseGuards(JwtAuthGuard)
+  @Patch('status/:tmdbId')
   updateStatus(
-    @Param('userEmail') userEmail: string,
+    @Req() req: Request & { user: AuthJwtPayload },
     @Param('tmdbId', ParseIntPipe) tmdbId: number,
     @Body() payload: UpdateMovieStatusDto,
   ): Promise<MovieStatusItem> {
-    return this.moviesService.updateStatus(userEmail, tmdbId, payload);
+    return this.moviesService.updateStatus(req.user.email, tmdbId, payload);
   }
 
   @ApiOperation({ summary: 'Delete movie status for user' })
-  @ApiParam({ name: 'userEmail', description: 'User e-mail' })
   @ApiParam({ name: 'tmdbId', description: 'TMDB movie id' })
-  @Delete('status/:userEmail/:tmdbId')
+  @UseGuards(JwtAuthGuard)
+  @Delete('status/:tmdbId')
   deleteStatus(
-    @Param('userEmail') userEmail: string,
+    @Req() req: Request & { user: AuthJwtPayload },
     @Param('tmdbId', ParseIntPipe) tmdbId: number,
   ): Promise<void> {
-    return this.moviesService.deleteStatus(userEmail, tmdbId);
+    return this.moviesService.deleteStatus(req.user.email, tmdbId);
   }
 }

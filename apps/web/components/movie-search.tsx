@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { KeyboardEvent } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { MovieStatusItem, TmdbMovieSearchItem } from '@moviehub/shared-types';
 import {
   deleteMovieStatus,
@@ -13,7 +14,6 @@ import {
 import { MovieCard } from './movie-card';
 
 type MovieSearchProps = {
-  userEmail: string;
   showSearch?: boolean;
   showStatuses?: boolean;
 };
@@ -22,10 +22,10 @@ type StatusFilter = 'ALL' | 'WATCHLIST' | 'WATCHED';
 type SortOrder = 'NEWEST' | 'TITLE_ASC';
 
 export function MovieSearch({
-  userEmail,
   showSearch = true,
   showStatuses = true,
 }: MovieSearchProps) {
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
   const [statuses, setStatuses] = useState<MovieStatusItem[]>([]);
   const [results, setResults] = useState<TmdbMovieSearchItem[]>([]);
@@ -39,12 +39,12 @@ export function MovieSearch({
 
   const loadStatuses = useCallback(async () => {
     try {
-      const data = await getMovieStatuses(userEmail);
+      const data = await getMovieStatuses();
       setStatuses(data);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to load statuses.');
     }
-  }, [userEmail]);
+  }, []);
 
   useEffect(() => {
     void loadStatuses();
@@ -72,10 +72,33 @@ export function MovieSearch({
     }
   };
 
+  useEffect(() => {
+    const initialQuery = searchParams.get('query')?.trim() ?? '';
+    if (!showSearch || initialQuery.length < 2) return;
+
+    setQuery((prev) => (prev === initialQuery ? prev : initialQuery));
+    setLoading(true);
+    setMessage(null);
+
+    void searchMovies(initialQuery)
+      .then((data) => {
+        setResults(data);
+        setActiveResultIndex(data.length > 0 ? 0 : -1);
+        if (data.length === 0) setMessage('No results found.');
+      })
+      .catch((error: unknown) => {
+        setMessage(error instanceof Error ? error.message : 'Search failed.');
+        setResults([]);
+        setActiveResultIndex(-1);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [searchParams, showSearch]);
+
   const addToWatchlist = async (movie: TmdbMovieSearchItem) => {
     try {
       await upsertMovieStatus({
-        userEmail,
         tmdbId: movie.tmdbId,
         title: movie.title,
         posterPath: movie.posterPath,
@@ -95,7 +118,6 @@ export function MovieSearch({
   const addToWatched = async (movie: TmdbMovieSearchItem) => {
     try {
       await upsertMovieStatus({
-        userEmail,
         tmdbId: movie.tmdbId,
         title: movie.title,
         posterPath: movie.posterPath,
@@ -114,7 +136,7 @@ export function MovieSearch({
 
   const markAsWatched = async (item: MovieStatusItem) => {
     try {
-      await updateMovieStatus(userEmail, item.tmdbId, { status: 'WATCHED' });
+      await updateMovieStatus(item.tmdbId, { status: 'WATCHED' });
       setMessage(`Marked "${item.title}" as watched.`);
       await loadStatuses();
     } catch (error) {
@@ -124,7 +146,7 @@ export function MovieSearch({
 
   const removeFromList = async (item: MovieStatusItem) => {
     try {
-      await deleteMovieStatus(userEmail, item.tmdbId);
+      await deleteMovieStatus(item.tmdbId);
       setMessage(`Removed "${item.title}" from list.`);
       await loadStatuses();
     } catch (error) {
@@ -181,7 +203,7 @@ export function MovieSearch({
 
   return (
     <section className="app-panel space-y-4 p-4 text-sm">
-      {showStatuses ? <div className="font-medium text-blue-100">Your movie list ({userEmail})</div> : null}
+      {showStatuses ? <div className="font-medium text-blue-100">Your movie list</div> : null}
       {showStatuses ? (
         <div className="flex flex-wrap items-center gap-2">
           <button
