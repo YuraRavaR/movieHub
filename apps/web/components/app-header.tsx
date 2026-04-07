@@ -22,25 +22,27 @@ export function AppHeader() {
           <Link href="/" className="text-lg font-bold tracking-tight text-blue-100">
             MovieHub
           </Link>
-          <form
-            className="hidden items-center gap-2 md:flex"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const query = headerQuery.trim();
-              if (query.length < 2) return;
-              router.push(`/search?query=${encodeURIComponent(query)}`);
-            }}
-          >
-            <input
-              className="w-56 rounded-md border border-blue-800/70 bg-slate-900 px-3 py-2 text-xs text-slate-100"
-              placeholder="Search movies..."
-              value={headerQuery}
-              onChange={(event) => setHeaderQuery(event.target.value)}
-            />
-            <button type="submit" className="btn-primary px-3 py-2 text-xs">
-              Search
-            </button>
-          </form>
+          <div className="hidden md:block">
+            <form
+              className="flex items-center gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const query = headerQuery.trim();
+                if (query.length < 2) return;
+                router.push(`/search?query=${encodeURIComponent(query)}`);
+              }}
+            >
+              <input
+                className="w-56 rounded-md border border-blue-800/70 bg-slate-900 px-3 py-2 text-xs text-slate-100"
+                placeholder="Search movies... e.g. Dune"
+                value={headerQuery}
+                onChange={(event) => setHeaderQuery(event.target.value)}
+              />
+              <button type="submit" className="btn-primary px-3 py-2 text-xs">
+                Search
+              </button>
+            </form>
+          </div>
         </div>
         <nav className="flex items-center gap-2 text-sm">
           <Link href="/" className="btn-ghost">
