@@ -31,46 +31,113 @@ export function MovieSearch({
   const [results, setResults] = useState<TmdbMovieSearchItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [popupMessage, setPopupMessage] = useState<string | null>(null);
   const [watchlistAddedIds, setWatchlistAddedIds] = useState<number[]>([]);
   const [watchedAddedIds, setWatchedAddedIds] = useState<number[]>([]);
   const [filter, setFilter] = useState<StatusFilter>('ALL');
   const [sortOrder, setSortOrder] = useState<SortOrder>('NEWEST');
   const [activeResultIndex, setActiveResultIndex] = useState<number>(-1);
+  const [suggestions, setSuggestions] = useState<TmdbMovieSearchItem[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState<number>(-1);
+
+  const showPopup = useCallback((text: string) => {
+    setPopupMessage(text);
+    window.setTimeout(() => setPopupMessage(null), 3500);
+  }, []);
+
+  const handleError = useCallback(
+    (error: unknown, fallback: string) => {
+      const text = error instanceof Error ? error.message : fallback;
+      if (text.toLowerCase().includes('unauthorized')) {
+        showPopup('Session expired or not logged in. Please login to manage your list.');
+        return;
+      }
+      setMessage(text);
+    },
+    [showPopup],
+  );
 
   const loadStatuses = useCallback(async () => {
     try {
       const data = await getMovieStatuses();
       setStatuses(data);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to load statuses.');
+      handleError(error, 'Failed to load statuses.');
     }
-  }, []);
+  }, [handleError]);
 
   useEffect(() => {
+    if (!showStatuses) return;
     void loadStatuses();
-  }, [loadStatuses]);
+  }, [loadStatuses, showStatuses]);
 
-  const onSearch = async () => {
-    if (query.trim().length < 2) {
+  const runSearch = async (rawQuery: string) => {
+    const normalizedQuery = rawQuery.trim();
+    if (normalizedQuery.length < 2) {
       setMessage('Enter at least 2 characters.');
       return;
     }
 
     setLoading(true);
     setMessage(null);
+    setShowSuggestions(false);
     try {
-      const data = await searchMovies(query.trim());
+      const data = await searchMovies(normalizedQuery);
       setResults(data);
       setActiveResultIndex(data.length > 0 ? 0 : -1);
       if (data.length === 0) setMessage('No results found.');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Search failed.');
+      handleError(error, 'Search failed.');
       setResults([]);
       setActiveResultIndex(-1);
     } finally {
       setLoading(false);
     }
   };
+
+  const onSearch = async () => {
+    await runSearch(query);
+  };
+
+  const chooseSuggestion = (movie: TmdbMovieSearchItem) => {
+    setHighlightedSuggestionIndex(-1);
+    setQuery(movie.title);
+    void runSearch(movie.title);
+  };
+
+  useEffect(() => {
+    if (!showSearch) return;
+    const normalizedQuery = query.trim();
+    if (normalizedQuery.length < 2 || !showSuggestions) {
+      setSuggestions([]);
+      setSuggestionsLoading(false);
+      setHighlightedSuggestionIndex(-1);
+      return;
+    }
+
+    setSuggestionsLoading(true);
+    const timerId = window.setTimeout(() => {
+      void searchMovies(normalizedQuery)
+        .then((data) => {
+          const nextSuggestions = data.slice(0, 6);
+          setSuggestions(nextSuggestions);
+          setHighlightedSuggestionIndex(nextSuggestions.length > 0 ? 0 : -1);
+        })
+        .catch(() => {
+          setSuggestions([]);
+          setHighlightedSuggestionIndex(-1);
+        })
+        .finally(() => {
+          setSuggestionsLoading(false);
+        });
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [query, showSearch, showSuggestions]);
 
   useEffect(() => {
     const initialQuery = searchParams.get('query')?.trim() ?? '';
@@ -87,14 +154,19 @@ export function MovieSearch({
         if (data.length === 0) setMessage('No results found.');
       })
       .catch((error: unknown) => {
-        setMessage(error instanceof Error ? error.message : 'Search failed.');
+        const text = error instanceof Error ? error.message : 'Search failed.';
+        if (text.toLowerCase().includes('unauthorized')) {
+          showPopup('Session expired or not logged in. Please login to manage your list.');
+        } else {
+          setMessage(text);
+        }
         setResults([]);
         setActiveResultIndex(-1);
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [searchParams, showSearch]);
+  }, [searchParams, showPopup, showSearch]);
 
   const addToWatchlist = async (movie: TmdbMovieSearchItem) => {
     try {
@@ -111,7 +183,7 @@ export function MovieSearch({
       setWatchedAddedIds((prev) => prev.filter((id) => id !== movie.tmdbId));
       await loadStatuses();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Add failed.');
+      handleError(error, 'Add failed.');
     }
   };
 
@@ -130,7 +202,7 @@ export function MovieSearch({
       setWatchlistAddedIds((prev) => prev.filter((id) => id !== movie.tmdbId));
       await loadStatuses();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Add failed.');
+      handleError(error, 'Add failed.');
     }
   };
 
@@ -140,7 +212,7 @@ export function MovieSearch({
       setMessage(`Marked "${item.title}" as watched.`);
       await loadStatuses();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Update failed.');
+      handleError(error, 'Update failed.');
     }
   };
 
@@ -150,13 +222,37 @@ export function MovieSearch({
       setMessage(`Removed "${item.title}" from list.`);
       await loadStatuses();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Delete failed.');
+      handleError(error, 'Delete failed.');
     }
   };
 
   const onSearchInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    const hasVisibleSuggestions = showSuggestions && suggestions.length > 0;
+
+    if (event.key === 'ArrowDown' && hasVisibleSuggestions) {
+      event.preventDefault();
+      setHighlightedSuggestionIndex((prev) =>
+        Math.min(prev + 1, suggestions.length - 1),
+      );
+      return;
+    }
+
+    if (event.key === 'ArrowUp' && hasVisibleSuggestions) {
+      event.preventDefault();
+      setHighlightedSuggestionIndex((prev) => Math.max(prev - 1, 0));
+      return;
+    }
+
     if (event.key === 'Enter') {
       event.preventDefault();
+      if (
+        hasVisibleSuggestions &&
+        highlightedSuggestionIndex >= 0 &&
+        highlightedSuggestionIndex < suggestions.length
+      ) {
+        chooseSuggestion(suggestions[highlightedSuggestionIndex]);
+        return;
+      }
       void onSearch();
       return;
     }
@@ -203,6 +299,12 @@ export function MovieSearch({
 
   return (
     <section className="app-panel space-y-4 p-4 text-sm">
+      {popupMessage ? (
+        <div className="fixed right-4 top-20 z-50 max-w-sm rounded-md border border-amber-400/50 bg-amber-950/90 px-3 py-2 text-sm text-amber-100 shadow-lg">
+          {popupMessage}
+        </div>
+      ) : null}
+
       {showStatuses ? <div className="font-medium text-blue-100">Your movie list</div> : null}
       {showStatuses ? (
         <div className="flex flex-wrap items-center gap-2">
@@ -284,22 +386,74 @@ export function MovieSearch({
         <div className="font-medium text-blue-100">Search TMDB and add to watchlist</div>
       ) : null}
       {showSearch ? (
-        <div className="flex gap-2">
-          <input
-            className="w-full rounded-md border border-blue-800/70 bg-slate-900 px-3 py-2 text-sm text-slate-100"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={onSearchInputKeyDown}
-            placeholder="e.g. fight club"
-          />
-          <button
-            type="button"
-            onClick={onSearch}
-            disabled={loading}
-            className="btn-primary disabled:opacity-60"
-          >
-            {loading ? 'Searching...' : 'Search'}
-          </button>
+        <div className="space-y-2">
+          <div className="relative flex gap-2">
+            <input
+              className="w-full rounded-md border border-blue-800/70 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => {
+                setShowSuggestions(true);
+                setHighlightedSuggestionIndex(suggestions.length > 0 ? 0 : -1);
+              }}
+              onBlur={() => {
+                window.setTimeout(() => setShowSuggestions(false), 120);
+              }}
+              onKeyDown={onSearchInputKeyDown}
+              placeholder="e.g. Fight Club"
+            />
+            {showSuggestions && query.trim().length >= 2 ? (
+              <div className="absolute left-0 top-11 z-20 w-[calc(100%-98px)] rounded-md border border-blue-800/70 bg-slate-950 shadow-xl">
+                {suggestionsLoading ? (
+                  <div className="px-3 py-2 text-xs text-slate-400">Searching suggestions...</div>
+                ) : suggestions.length > 0 ? (
+                  <ul className="max-h-64 overflow-y-auto py-1">
+                    {suggestions.map((item) => (
+                      <li key={`suggestion-${item.tmdbId}`}>
+                        <button
+                          type="button"
+                          className={`w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-900 ${
+                            suggestions[highlightedSuggestionIndex]?.tmdbId === item.tmdbId
+                              ? 'bg-slate-900'
+                              : ''
+                          }`}
+                          onMouseEnter={() => {
+                            const nextIndex = suggestions.findIndex(
+                              (candidate) => candidate.tmdbId === item.tmdbId,
+                            );
+                            setHighlightedSuggestionIndex(nextIndex);
+                          }}
+                          onClick={() => {
+                            chooseSuggestion(item);
+                          }}
+                        >
+                          {item.title}
+                          {item.releaseDate ? (
+                            <span className="ml-2 text-xs text-slate-400">
+                              ({item.releaseDate.slice(0, 4)})
+                            </span>
+                          ) : null}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="px-3 py-2 text-xs text-slate-400">No suggestions.</div>
+                )}
+              </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={onSearch}
+              disabled={loading}
+              className="btn-primary disabled:opacity-60"
+            >
+              {loading ? 'Searching...' : 'Search'}
+            </button>
+          </div>
         </div>
       ) : null}
 
@@ -311,7 +465,7 @@ export function MovieSearch({
 
       {showSearch ? (
         <ul className="space-y-2">
-          {results.map((movie, index) => (
+          {results.map((movie) => (
             <MovieCard
               key={movie.tmdbId}
               title={movie.title}
@@ -320,11 +474,6 @@ export function MovieSearch({
               genres={movie.genres}
               voteAverage={movie.voteAverage}
               posterPath={movie.posterPath}
-              subtitle={
-                activeResultIndex === index
-                  ? 'Selected (↑/↓ navigate, W watchlist, M watched)'
-                  : undefined
-              }
               actions={
                 <>
                   <button
