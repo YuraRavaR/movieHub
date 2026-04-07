@@ -8,11 +8,14 @@ import { UpsertMovieStatusDto } from './dto/upsert-movie-status.dto';
 export class MoviesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async upsertStatus(payload: UpsertMovieStatusDto): Promise<MovieStatusItem> {
+  async upsertStatus(
+    userEmail: string,
+    payload: UpsertMovieStatusDto,
+  ): Promise<MovieStatusItem> {
     const user = await this.prisma.user.upsert({
-      where: { email: payload.userEmail },
+      where: { email: userEmail },
       update: {},
-      create: { email: payload.userEmail },
+      create: { email: userEmail },
     });
 
     const movie = await this.prisma.movie.upsert({

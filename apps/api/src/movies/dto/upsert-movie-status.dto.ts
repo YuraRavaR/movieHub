@@ -1,17 +1,7 @@
 import { MovieStatus } from '@prisma/client';
-import {
-  IsEmail,
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsString,
-  Min,
-} from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpsertMovieStatusDto {
-  @IsEmail()
-  userEmail!: string;
-
   @IsInt()
   @Min(1)
   tmdbId!: number;

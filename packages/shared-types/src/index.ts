@@ -8,7 +8,6 @@ export interface HealthResponse {
 }
 
 export interface UpsertMovieStatusRequest {
-  userEmail: string;
   tmdbId: number;
   title: string;
   posterPath?: string | null;
