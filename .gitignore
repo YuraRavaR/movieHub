@@ -1,0 +1,43 @@
+# dependencies
+node_modules
+
+# env/secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# build/cache artifacts
+.turbo
+**/.turbo
+dist
+**/dist
+coverage
+**/coverage
+**/.next
+**/out
+**/build
+**/*.tsbuildinfo
+**/.cache
+
+# test artifacts
+**/test-results
+**/playwright-report
+**/.nyc_output
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# local editor/system files
+.DS_Store
+**/.DS_Store
+**/.idea
+**/.vscode
+.tmp-home
+.tmp-config
+
+# private local working notes/artifacts
+.local/

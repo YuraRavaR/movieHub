@@ -1,0 +1,24 @@
+{
+  "name": "moviehub",
+  "version": "1.0.0",
+  "description": "MovieHub monorepo (web, api, shared contracts).",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e:api": "npm run test:e2e --workspace api",
+    "test:e2e:web": "npm run test:e2e --workspace web"
+  },
+  "private": true,
+  "packageManager": "npm@11.6.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "turbo": "^2.9.4",
+    "typescript": "^5.7.3"
+  }
+}
