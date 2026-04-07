@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import type { HealthResponse } from '@moviehub/shared-types';
+import type { HealthResponse } from './types';
 import { AppService } from './app.service';
 
 @Controller('health')

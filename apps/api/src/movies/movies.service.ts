@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { MovieStatusItem } from '@moviehub/shared-types';
+import type { MovieStatusItem } from '../types';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateMovieStatusDto } from './dto/update-movie-status.dto';
 import { UpsertMovieStatusDto } from './dto/upsert-movie-status.dto';

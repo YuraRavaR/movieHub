@@ -6,7 +6,7 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { TmdbMovieSearchItem } from '@moviehub/shared-types';
+import type { TmdbMovieSearchItem } from '../types';
 import { ConfigService } from '@nestjs/config';
 
 interface TmdbSearchResponse {

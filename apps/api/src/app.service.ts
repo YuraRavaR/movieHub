@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { HealthResponse } from '@moviehub/shared-types';
+import type { HealthResponse } from './types';
 
 @Injectable()
 export class AppService {

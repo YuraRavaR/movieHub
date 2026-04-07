@@ -14,7 +14,7 @@ import {
 import type {
   MovieStatusItem,
   TmdbMovieSearchItem,
-} from '@moviehub/shared-types';
+} from '../types';
 import type { Request } from 'express';
 import {
   ApiCreatedResponse,
