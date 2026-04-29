@@ -1,4 +1,9 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+function getApiBase(): string {
+  if (typeof window === 'undefined') {
+    return process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+  }
+  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+}
 
 export type AuthMe = {
   id: string;
@@ -22,7 +27,7 @@ async function parseErrorMessage(response: Response, fallback: string): Promise<
 }
 
 export async function signup(email: string, password: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+  const response = await fetch(`${getApiBase()}/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -35,7 +40,7 @@ export async function signup(email: string, password: string): Promise<void> {
 }
 
 export async function login(email: string, password: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  const response = await fetch(`${getApiBase()}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -48,7 +53,7 @@ export async function login(email: string, password: string): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+  const response = await fetch(`${getApiBase()}/auth/logout`, {
     method: 'POST',
     credentials: 'include',
   });
@@ -59,7 +64,7 @@ export async function logout(): Promise<void> {
 }
 
 export async function me(): Promise<AuthMe | null> {
-  const response = await fetch(`${API_BASE_URL}/auth/me`, {
+  const response = await fetch(`${getApiBase()}/auth/me`, {
     credentials: 'include',
     cache: 'no-store',
   });
