@@ -1,6 +1,6 @@
 import type { TmdbMovieSearchItem } from '@moviehub/shared-types';
 import Link from 'next/link';
-import { MoviePoster } from '@/components/movie-poster';
+import { TopMoviesGrid } from '@/components/top-movies-grid';
 import { getTopMovies } from '@/lib/movies-api';
 
 export default async function Home() {
@@ -42,32 +42,7 @@ export default async function Home() {
           </Link>
         </div>
         {topMovies.length > 0 ? (
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {topMovies.map((movie) => (
-              <li
-                key={movie.tmdbId}
-                className="app-panel flex min-h-44 items-start gap-3 p-3 transition hover:border-blue-600/80"
-              >
-                <MoviePoster title={movie.title} posterPath={movie.posterPath} size="md" />
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-blue-100">{movie.title}</div>
-                  <div className="mt-1 text-xs text-slate-400">
-                    {movie.releaseDate ?? 'Unknown release date'}
-                  </div>
-                  {movie.voteAverage !== null ? (
-                    <div className="mt-1 text-xs text-blue-300">
-                      Rating: {movie.voteAverage}/10
-                    </div>
-                  ) : null}
-                  {movie.genres.length > 0 ? (
-                    <div className="mt-1 text-xs text-slate-300">
-                      {movie.genres.slice(0, 2).join(' • ')}
-                    </div>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <TopMoviesGrid movies={topMovies} />
         ) : (
           <div className="app-panel p-4 text-sm text-slate-300">
             Top movies are temporarily unavailable. You can still use search and watchlist.
